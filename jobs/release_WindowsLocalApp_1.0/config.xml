@@ -1,0 +1,369 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Release build of version 10.0 of SkyDRM Desktop for Windows&#xd;
+&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;- &lt;b&gt;repo&lt;/b&gt;: https://bitbucket.org/nxtlbs-devops/rmd-windows&#xd;
+&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;- &lt;b&gt;branch&lt;/b&gt;: origin/master</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.security.AuthorizationMatrixProperty>
+      <inheritanceStrategy class="org.jenkinsci.plugins.matrixauth.inheritance.InheritParentStrategy"/>
+      <permission>hudson.model.Item.Read:mxu</permission>
+      <permission>hudson.model.Item.Workspace:mxu</permission>
+    </hudson.security.AuthorizationMatrixProperty>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>10</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.29">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.9.1">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>git@bitbucket.org:nxtlbs-devops/rmd-windows.git</url>
+        <credentialsId>NXL_build-op</credentialsId>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>origin/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.CleanBeforeCheckout/>
+      <hudson.plugins.git.extensions.impl.PruneStaleBranch/>
+    </extensions>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>export NLEXTERNALDIR=D:/P4/external
+export NLEXTERNALDIR2=D:/P4/main_external
+export NLGITEXTERNALDIR=D:/P4/git_external
+
+
+# Unmap and remap S drive
+[ `subst | grep -ic S:` -ne 0 ] &amp;&amp; subst S: /D
+[ `net use | grep -ic S:` -ne 0 ] &amp;&amp; net use S: /D
+net use s: &quot;\\\\nextlabs.com\\share\\data&quot;
+
+set +x
+
+# Wipe Doom related content - we are going to copy from nextlabs share
+rm -rf D:/Doom
+
+# Copy Doom SDK
+mkdir -p D:/Doom/doom_core
+cd D:/Doom/doom_core
+cp S:/build/release_candidate/artifacts/Doom/Core/1.1/Windows/last_stable/*.zip .
+DOOMCORE_ZIPFILE=$(ls -1 $PWD)
+echo
+echo &quot;################################################################################&quot;
+echo &quot;#    Unpacking: ${DOOMCORE_ZIPFILE} ...&quot;
+echo &quot;################################################################################&quot;
+unzip -o ${DOOMCORE_ZIPFILE}
+
+# Copy Doom CORE SDK
+mkdir -p D:/Doom/doom_sdk
+cd D:/Doom/doom_sdk
+# cp S:/build/release_candidate/artifacts/Doom/SDK/1.1/Windows/last_stable/*-release-bin.zip .
+        ##########
+        ## Temp workaround until Allen confirms last_stable
+        ##########
+        DOOM_SDK_LATEST_BUILD=$(curl -fsSL http://build-op:1176a18ceba76393573105b5296454ee57@nxt-build26.nextlabs.com:9031/job/release_Doom_SDK_main/lastSuccessfulBuild/buildNumber)
+        cp S:/build/release_candidate/artifacts/Doom/SDK/1.1/Windows/${DOOM_SDK_LATEST_BUILD}/*-release-bin.zip .
+        
+        # Using CRUMB
+        # CRUMB=$(curl -s &apos;http://nxt-build26.nextlabs.com:9031/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,&quot;:&quot;,//crumb)&apos; -u build-op:1176a18ceba76393573105b5296454ee57)
+        # curl -s -XPOST &apos;http://nxt-build26.nextlabs.com:9031/job/release_Doom_SDK_main/lastSuccessfulBuild/buildNumber&apos; \
+        #     -u build-op:1176a18ceba76393573105b5296454ee57 \
+        #     -H &quot;$CRUMB&quot; -H &quot;Content-Type:text/plain&quot;
+
+        # Hardcoded path to DOOM SDK
+        # DOOM_SDK_LATEST_BUILD=$(ls -rtd S:/build/release_candidate/artifacts/Doom/SDK/1.1/Windows/1* | tail -1)
+        # cp ${DOOM_SDK_LATEST_BUILD}/*-release-bin.zip .
+        ##########
+DOOM_SDK_ZIPFILE=$(ls -1 $PWD)
+echo
+echo &quot;################################################################################&quot;
+echo &quot;#    Unpacking: ${DOOM_SDK_ZIPFILE} ...&quot;
+echo &quot;################################################################################&quot;
+unzip -o ${DOOM_SDK_ZIPFILE}
+</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.BatchFile>
+      <command>cd %WORKSPACE%\build\scripts&#xd;
+call setVersion.bat</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.Shell>
+      <command>cd ${WORKSPACE}
+sed &quot;s@1\.0\.\0\.0@10.0.${BUILD_NUMBER}@g&quot; SkydrmLocal/Viewer/Properties/AssemblyInfo.cs &gt; SkydrmLocal/Viewer/Properties/AssemblyInfo.cs.mod
+mv SkydrmLocal/Viewer/Properties/AssemblyInfo.cs.mod SkydrmLocal/Viewer/Properties/AssemblyInfo.cs
+
+sed &quot;s@1\.0\.\0\.0@10.0.${BUILD_NUMBER}@g&quot; SkydrmLocal/WindowsLocalMode/Properties/AssemblyInfo.cs &gt; SkydrmLocal/WindowsLocalMode/Properties/AssemblyInfo.cs.mod
+mv SkydrmLocal/WindowsLocalMode/Properties/AssemblyInfo.cs.mod SkydrmLocal/WindowsLocalMode/Properties/AssemblyInfo.cs
+
+sed &quot;s@1\.0\.\0\.0@10.0.${BUILD_NUMBER}@g&quot; SkydrmLocal/Print/Properties/AssemblyInfo.cs &gt; SkydrmLocal/Print/Properties/AssemblyInfo.cs.mod
+mv SkydrmLocal/Print/Properties/AssemblyInfo.cs.mod SkydrmLocal/Print/Properties/AssemblyInfo.cs</command>
+    </hudson.tasks.Shell>
+    <hudson.plugins.msbuild.MsBuildBuilder plugin="msbuild@1.29">
+      <msBuildName>MSBuildVS2017</msBuildName>
+      <msBuildFile>SkydrmLocal/SkydrmLocal.sln</msBuildFile>
+      <cmdLineArgs>/p:Configuration=Release /p:Platform=x64 /p:TargetFrameworkVersion=v4.5 /t:build</cmdLineArgs>
+      <buildVariablesAsProperties>true</buildVariablesAsProperties>
+      <continueOnBuildFailure>false</continueOnBuildFailure>
+      <unstableIfWarnings>false</unstableIfWarnings>
+      <doNotUseChcpCommand>false</doNotUseChcpCommand>
+    </hudson.plugins.msbuild.MsBuildBuilder>
+    <hudson.plugins.msbuild.MsBuildBuilder plugin="msbuild@1.29">
+      <msBuildName>MSBuildVS2017</msBuildName>
+      <msBuildFile>nxrmaddin/nxrmaddin.vcxproj </msBuildFile>
+      <cmdLineArgs>/t:Rebuild /p:Configuration=Release;Platform=x86;WindowsTargetPlatformVersion=10.0.17134.0;PlatformToolset=v141</cmdLineArgs>
+      <buildVariablesAsProperties>true</buildVariablesAsProperties>
+      <continueOnBuildFailure>false</continueOnBuildFailure>
+      <unstableIfWarnings>false</unstableIfWarnings>
+      <doNotUseChcpCommand>false</doNotUseChcpCommand>
+    </hudson.plugins.msbuild.MsBuildBuilder>
+    <hudson.plugins.msbuild.MsBuildBuilder plugin="msbuild@1.29">
+      <msBuildName>MSBuildVS2017</msBuildName>
+      <msBuildFile>nxrmaddin/nxrmaddin.vcxproj </msBuildFile>
+      <cmdLineArgs>/t:Rebuild /p:Configuration=Release;Platform=x64;WindowsTargetPlatformVersion=10.0.17134.0;PlatformToolset=v141</cmdLineArgs>
+      <buildVariablesAsProperties>false</buildVariablesAsProperties>
+      <continueOnBuildFailure>false</continueOnBuildFailure>
+      <unstableIfWarnings>false</unstableIfWarnings>
+      <doNotUseChcpCommand>false</doNotUseChcpCommand>
+    </hudson.plugins.msbuild.MsBuildBuilder>
+    <hudson.tasks.Shell>
+      <command>export NLEXTERNALDIR=D:/P4/external
+export NLEXTERNALDIR2=D:/P4/main_external
+export NLGITEXTERNAL=D:/P4/git_external
+export NLGITEXTERNALDIR=D:/P4/git_external
+export NLDOOMDIR=D:/Doom
+
+# Unmap and remap S drive
+# [ `subst | grep -ic S:` -ne 0 ] &amp;&amp; subst S: /D
+# [ `net use | grep -ic S:` -ne 0 ] &amp;&amp; net use S: /D
+# net use s: &quot;\\\\nextlabs.com\\share\\data&quot;
+
+# Copy Doom related files
+# cp ${NLDOOMDIR}/doom_core/build/build.msvc/Win32_Release/libeay32.dll ${WORKSPACE}/installer/release_win_x86/
+cp ${NLEXTERNALDIR}/openssl/OpenSSL-1.0.1e-Win32/bin/libeay32.dll ${WORKSPACE}/installer/release_win_x86/
+
+# Copy required Nextlabs files
+cd ${WORKSPACE}/SkydrmLocal/bin/Release
+tar cf - . | (cd ${WORKSPACE}/installer/release_win_x64/ ; tar xf -)
+cp ${WORKSPACE}/nxrmaddin/Release/nxrmaddin.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${WORKSPACE}/nxrmaddin/x64/Release/nxrmaddin64.dll ${WORKSPACE}/installer/release_win_x64/
+
+# Unpack PolicyController
+export POLICYCONTROLLERZIP=S:/build/release_candidate/artifacts/Doom/SDK/1.1/Windows/redist/SDKLib_redist_x64.zip
+unzip.exe -o ${POLICYCONTROLLERZIP} -d ${WORKSPACE}/installer/&apos;Policy Controller&apos;
+
+# Copy HOOPS 3DConverter 2018 U1
+mkdir -p ${WORKSPACE}/installer/3DConverter
+# cd ${NLEXTERNALDIR2}/HOOPSCADViewer/2018_U1/bin/win64_v140 ; tar cf - . | (cd ${WORKSPACE}/installer/3DConverter; tar xf -)
+cd ${NLEXTERNALDIR2}/HOOPSCADViewer/2017_SP1_U1/bin/win64 ; tar cf - . | (cd ${WORKSPACE}/installer/3DConverter; tar xf -)
+
+# Copy required 3rd-party dlls
+cp ${NLEXTERNALDIR2}/HOOPSCADViewer/2017_SP1_U1/bin/win64/hps_dx11.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLEXTERNALDIR2}/HOOPSCADViewer/2017_SP1_U1/bin/win64/hps_dx9.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/HoopsVisualize/2018_SP1/win64/bin/win64_v141/d3dcompiler_47.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/HoopsVisualize/2018_SP1/win64/bin/win64_v141/hps_core.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/HoopsVisualize/2018_SP1/win64/bin/win64_v141/hps_directx11.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/HoopsVisualize/2018_SP1/win64/bin/win64_v141/hps_directx9.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/HoopsVisualize/2018_SP1/win64/bin/win64_v141/hps_sprk.dll ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/HoopsVisualize/2018_SP1/win64/bin/win64_v141/hps_sprk_ops.dll ${WORKSPACE}/installer/release_win_x64/
+cp &quot;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Visual Studio Tools for Office\PIA\Office15\Microsoft.Office.Interop.Excel.dll&quot; ${WORKSPACE}/installer/release_win_x64/
+cp &quot;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Visual Studio Tools for Office\PIA\Office15\Microsoft.Office.Interop.PowerPoint.dll&quot; ${WORKSPACE}/installer/release_win_x64/
+cp &quot;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Visual Studio Tools for Office\PIA\Office15\Microsoft.Office.Interop.Word.dll&quot; ${WORKSPACE}/installer/release_win_x64/
+cp &quot;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Visual Studio Tools for Office\PIA\Office15\Microsoft.Vbe.Interop.dll&quot;  ${WORKSPACE}/installer/release_win_x64/
+cp &quot;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Visual Studio Tools for Office\PIA\Office15\Office.dll&quot; ${WORKSPACE}/installer/release_win_x64/
+cp ${NLGITEXTERNALDIR}/system.data.sqlite.core/1.0.109.2/build/net45/x64/SQLite.Interop.dll ${WORKSPACE}/installer/release_win_x64/
+
+# Unpack RPMInstallerx64
+DOOM_SDK_LATEST_BUILD=$(curl -fsSL http://build-op:1176a18ceba76393573105b5296454ee57@nxt-build26.nextlabs.com:9031/job/release_Doom_SDK_main/lastSuccessfulBuild/buildNumber)
+cp S:/build/release_candidate/artifacts/Doom/SDK/1.1/Windows/${DOOM_SDK_LATEST_BUILD}/doom-SDK-*-release-install.zip ${WORKSPACE}/installer/
+mkdir -p ${WORKSPACE}/installer/RPMInstallerx64
+cd ${WORKSPACE}/installer/RPMInstallerx64 ; unzip -jo ${WORKSPACE}/installer/doom-SDK-*-release-install.zip install/build_RPM/output/Release_64bit/Media_MSI/DiskImages/DISK1/\*
+rm -f ${WORKSPACE}/installer/doom-SDK-*-release-install.zip
+</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.BatchFile>
+      <command>REM Perform Code-signing of binaries&#xd;
+&#xd;
+set SIGNTOOL_OFFICIAL_TOOL=C:\Program Files (x86)\Windows Kits\10\bin\10.0.17134.0\x64\signtool.exe&#xd;
+set SIGNTOOL_OFFICIAL_ARGS=sign /ac c:\release\bin\DigiCertAssuredIDRootCA.cer /f &quot;C:\release\bin\NextLabs.pfx&quot; /p IiVf1itvOrqJ /n &quot;NextLabs Inc.&quot; /fd sha256 /tr http://timestamp.digicert.com&#xd;
+set SIGNTOOL_OFFICIAL=&quot;%SIGNTOOL_OFFICIAL_TOOL%&quot; %SIGNTOOL_OFFICIAL_ARGS%&#xd;
+&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\Print.exe&quot;&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\Skydrm.exe&quot;&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\Viewer.exe&quot;&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\nxrmaddin.dll&quot;&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\nxrmaddin64.dll&quot;&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\nxrmshell.dll&quot;&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\release_win_x64\sdkwrapper.dll&quot;&#xd;
+&#xd;
+REM Run ISAutoGUIDVersion script on the ISM&#xd;
+%windir%\SysWOW64\cscript.exe %WORKSPACE%\build\scripts\ISAutoGUIDVersion.js %WORKSPACE%\installer\SkyDRM_x64.ism 10.0.%BUILD_NUMBER%</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.Shell>
+      <command>mkdir -p ${WORKSPACE}/installer/output
+cd ${WORKSPACE}/installer/
+&apos;C:/Program Files (x86)/InstallShield/2014 StandaloneBuild/System/IsCmdBld.exe&apos; \
+    -a SkyDRMx64 \
+    -p ${WORKSPACE}/installer/SkyDRM_x64.ism \
+    -b &quot;${WORKSPACE}\installer\output&quot;
+</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.BatchFile>
+      <command>REM Perform Code-signing of binaries&#xd;
+&#xd;
+set SIGNTOOL_OFFICIAL_TOOL=C:\Program Files (x86)\Windows Kits\10\bin\10.0.17134.0\x64\signtool.exe&#xd;
+set SIGNTOOL_OFFICIAL_ARGS=sign /ac c:\release\bin\DigiCertAssuredIDRootCA.cer /f &quot;C:\release\bin\NextLabs.pfx&quot; /p IiVf1itvOrqJ /n &quot;NextLabs Inc.&quot; /fd sha256 /tr http://timestamp.digicert.com&#xd;
+set SIGNTOOL_OFFICIAL=&quot;%SIGNTOOL_OFFICIAL_TOOL%&quot; %SIGNTOOL_OFFICIAL_ARGS%&#xd;
+&#xd;
+%SIGNTOOL_OFFICIAL% &quot;%WORKSPACE%\installer\output\SkyDRMx64\Media_MSI\DiskImages\DISK1\SkyDRM Desktop.msi&quot;</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.Shell>
+      <command># Push the zip to BODA
+export VERSION_BUILD_SHORT=${BUILD_NUMBER}
+export REPOSITORY_ROOT=S:/build/release_candidate
+export PUBLISH_BODA_SC_DIR=${REPOSITORY_ROOT}/SkyDRM-Desktop-For-Windows/10.0/${BUILD_NUMBER}
+export PUBLISH_BODA_SC_ARTIFACT_DIR=${REPOSITORY_ROOT}/artifacts/SkyDRM-Desktop-For-Windows/10.0/${BUILD_NUMBER}
+
+export LOG_FILE=${WORKSPACE}/buildRelease.log
+export BUILD_MANIFEST_FILE=${WORKSPACE}/build.manifest
+
+export PUBLISH_TO_BODA=1
+export BUILD_DATE=$(date +&quot;%Y%m%d&quot;)
+export BUILD_DATE_LONG=$(date +&quot;%Y%m%d%H%M&quot;)
+
+# Create BODA dirs that must be present
+mkdir -p ${PUBLISH_BODA_SC_DIR}
+mkdir -p ${PUBLISH_BODA_SC_ARTIFACT_DIR}
+
+(
+set -x
+
+# Extract Git and Jenkins info from Workspace (works only if running on Jenkins)
+if [ -f ${JENKINS_HOME}/jobs/${JOB_NAME}/config.xml ]; then
+    ${WORKSPACE}/build/scripts/getGitWorkspaceInfo.pl ${JENKINS_HOME}/jobs/${JOB_NAME}/config.xml
+fi
+
+# Publish to BODA only if PUBLISH_TO_BODA environment variable is set (set in Jenkins build process)
+if [ &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;Xyes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYES&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;X1&quot; ]
+then
+    # Zip MSI and copy zip to BODA
+    mkdir -p ${WORKSPACE}/finaloutput/ ; cd ${WORKSPACE}/finaloutput/
+    cp ${WORKSPACE}/installer/output/SkyDRMx64/Media_MSI/DiskImages/DISK1/&quot;SkyDRM Desktop.msi&quot; ${WORKSPACE}/finaloutput/
+    cd ${WORKSPACE}/installer/RPMInstallerx64 ; tar cf - . | ( cd ${WORKSPACE}/finaloutput/ ; tar xf - )
+    cd ${WORKSPACE}/finaloutput/
+    zip ${PUBLISH_BODA_SC_DIR}/SkyDRM-Desktop-for-Windows-64-10.0.${BUILD_NUMBER}-${BUILD_DATE_LONG}.zip *
+
+    set +x
+    echo &quot;[BUILD MANIFEST]   Product Name       : SkyDRM Desktop for Windows 10.0&quot;
+    echo &quot;[BUILD MANIFEST]   Installer Location : ${PUBLISH_BODA_SC_DIR}&quot;
+    echo &quot;[BUILD MANIFEST]   Installer Package  : SkyDRM-Desktop-for-Windows-64-10.0.${BUILD_NUMBER}-${BUILD_DATE_LONG}.zip&quot;
+    set -x
+fi
+
+set +x
+) 2&gt;&amp;1 | tee $LOG_FILE
+
+# Create and publish build manifest
+perl ${WORKSPACE}/build/scripts/createBuildManifest.pl $LOG_FILE &gt; $BUILD_MANIFEST_FILE || exit $?
+
+# Publish to BODA only if PUBLISH_TO_BODA environment variable is set (set in Jenkins build process)
+if [ &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;Xyes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYES&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;X1&quot; ]
+then
+    cp ${BUILD_MANIFEST_FILE} ${PUBLISH_BODA_SC_ARTIFACT_DIR}/
+fi
+
+echo
+echo
+echo &quot;####################### BUILD MANIFEST CONTENTS ########################&quot;
+cat ${BUILD_MANIFEST_FILE}
+echo &quot;########################################################################&quot;
+
+################################################################################
+########################### END PUBLISH TO BODA PART ###########################
+################################################################################
+
+## EOF ##</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.descriptionsetter.DescriptionSetterPublisher plugin="description-setter@1.10">
+      <regexp>^Checking out Revision (\w{7})</regexp>
+      <regexpForFailed>^Checking out Revision (\w{7})</regexpForFailed>
+      <description>GitSHA: \1</description>
+      <descriptionForFailed>GitSHA: \1</descriptionForFailed>
+      <setForMatrix>false</setForMatrix>
+    </hudson.plugins.descriptionsetter.DescriptionSetterPublisher>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.63">
+      <recipientList>$DEFAULT_RECIPIENTS, Allen.Ning@nextlabs.com, Osmond.Ye@nextlabs.com, Raymond.Zeng@nextlabs.com, Jack.Zhou@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$DEFAULT_CONTENT</defaultContent>
+      <attachmentsPattern></attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <from></from>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.10"/>
+    <EnvInjectBuildWrapper plugin="envinject@2.1.6">
+      <info>
+        <propertiesContent>NLEXTERNALDIR=D:\\P4\\external
+NLEXTERNALDIR2=D:\\P4\\main_external
+NLGITEXTERNAL=D:\\P4\\git_external
+NLGITEXTERNALDIR=D:\\P4\\git_external
+NLDOOMDIR=D:\\Doom
+</propertiesContent>
+        <secureGroovyScript plugin="script-security@1.49">
+          <script></script>
+          <sandbox>false</sandbox>
+        </secureGroovyScript>
+        <loadFilesFromMaster>false</loadFilesFromMaster>
+      </info>
+    </EnvInjectBuildWrapper>
+  </buildWrappers>
+</project>
